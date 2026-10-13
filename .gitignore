@@ -1,0 +1,12 @@
+.env
+.env.local
+output/
+uploads/
+__pycache__/
+*.pyc
+.claude/
+*.log
+*.err
+skills/
+.env.*
+!.env.example

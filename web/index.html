@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Content Studio</title>
+<meta name="description" content="סטודיו תוכן אישי: פוסט בקול של באדר ותמונה או קרוסלה בסגנון שלו, שלב אחרי שלב.">
+<link rel="icon" href="static/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+<!-- נתיבים יחסיים: אותו HTML עובד גם מהשרת המקומי (/) וגם מ-GitHub Pages (/<repo>/), ששניהם מגישים את הנכסים תחת static/ -->
+<link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+
+<a class="skip-link" href="#results">דלג לאזור התוצאה</a>
+
+<div id="offline-banner" class="banner banner-error" role="alert" hidden>
+  <strong>המנוע לא דולק.</strong>
+  הדף נפתח בלי השרת שמאחוריו. הפעל את <code>Content Studio.bat</code> (לחיצה כפולה), ואז פתח את הכתובת
+  <a href="http://127.0.0.1:8765/">http://127.0.0.1:8765/</a>.
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">CS</span>
+    <h1>Content Studio</h1>
+    <span class="brand-sub">פוסט בקול שלי, תמונה בסגנון שלי</span>
+  </div>
+  <div class="topbar-side">
+    <div id="status-chips" class="chips" role="group" aria-label="מצב המנוע"></div>
+    <button id="history-btn" type="button" class="btn btn-small" aria-expanded="false" aria-controls="history">היסטוריה</button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ===== פאנל הגדרות ===== -->
+  <aside class="panel" aria-labelledby="settings-title">
+    <h2 id="settings-title" class="panel-title">הגדרות</h2>
+    <form id="settings-form" novalidate>
+
+      <div class="field">
+        <label for="topic">נושא</label>
+        <input id="topic" name="topic" type="text" autocomplete="off" placeholder="למשל: מניעת נפילות בדיור מוגן">
+      </div>
+
+      <div class="field">
+        <label for="content">תוכן</label>
+        <textarea id="content" name="content" rows="8" placeholder="נקודות, דוגמאות, מסר מרכזי, מה חשוב לך שיופיע. מה שתכתוב כאן הוא החומר המרכזי של הפוסט והתמונה."></textarea>
+      </div>
+
+      <fieldset class="field">
+        <legend>מה ליצור</legend>
+        <div class="segmented" role="radiogroup" aria-label="מה ליצור">
+          <label><input type="radio" name="mode" value="both" checked><span>פוסט ותמונה</span></label>
+          <label><input type="radio" name="mode" value="post"><span>פוסט בלבד</span></label>
+          <label><input type="radio" name="mode" value="image"><span>תמונה בלבד</span></label>
+        </div>
+      </fieldset>
+
+      <div id="post-options">
+        <div class="field">
+          <label for="platform">פלטפורמה</label>
+          <select id="platform" name="platform">
+            <option value="linkedin">לינקדאין</option>
+          </select>
+        </div>
+
+        <fieldset class="field">
+          <legend>מחקר</legend>
+          <div class="segmented" role="radiogroup" aria-label="מצב מחקר">
+            <label><input type="radio" name="research" value="off" checked><span>בלי מחקר</span></label>
+            <label><input type="radio" name="research" value="on"><span>עם מחקר</span></label>
+          </div>
+          <p class="hint">עם מחקר: המנוע מחפש מקורות באינטרנט לפני הכתיבה ומשתמש רק בעובדות שנמצאו.</p>
+        </fieldset>
+      </div>
+
+      <button id="start-btn" type="submit" class="btn btn-primary btn-big">
+        <span class="btn-label">התחל</span>
+      </button>
+      <p class="hint" id="start-hint"></p>
+    </form>
+  </aside>
+
+  <!-- ===== אזור התוצאה ===== -->
+  <section id="results" class="results" aria-labelledby="results-title" tabindex="-1">
+    <h2 id="results-title" class="visually-hidden">אזור התוצאה</h2>
+    <div id="live" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+    <div id="live-error" class="visually-hidden" aria-live="assertive" aria-atomic="true"></div>
+
+    <section id="history" class="history" hidden aria-labelledby="history-title">
+      <header class="step-head">
+        <h3 id="history-title">היסטוריה</h3>
+        <span id="history-count" class="step-meta"></span>
+        <button id="history-close" type="button" class="btn btn-small">סגור</button>
+      </header>
+      <p class="hint">כל ריצה נשמרת בתיקייה משלה עם הטקסט, הפרומפטים והתמונות. "פתח" טוען אותה חזרה לממשק וממשיך ממנה. "מחק" מעביר לתיקיית אשפה.</p>
+      <p id="history-costs" class="costs" hidden></p>
+      <p id="history-empty" class="hint" hidden>עדיין אין ריצות שמורות.</p>
+      <ul id="history-list" class="history-list"></ul>
+    </section>
+
+    <p id="run-cost" class="costs" hidden aria-live="polite"></p>
+
+    <div id="empty-state" class="empty">
+      <p class="empty-num" aria-hidden="true">01</p>
+      <p>מלא נושא ותוכן, בחר מה ליצור, ולחץ <strong>התחל</strong>.<br>השלבים ייפרשו כאן, מלמעלה למטה.</p>
+    </div>
+
+    <!-- שלב הטקסט -->
+    <article id="step-text" class="step" hidden aria-labelledby="step-text-title">
+      <header class="step-head">
+        <span class="step-num" aria-hidden="true">1</span>
+        <h3 id="step-text-title">טקסט הפוסט</h3>
+        <span id="text-meta" class="step-meta"></span>
+      </header>
+      <div id="text-status" class="status" hidden></div>
+      <div id="research-box" class="research" hidden>
+        <details>
+          <summary>מה נמצא במחקר <span id="research-count"></span></summary>
+          <pre id="research-brief" class="brief"></pre>
+          <ul id="research-sources" class="sources"></ul>
+        </details>
+      </div>
+      <div id="text-body" hidden>
+        <textarea id="post-text" class="post" rows="14" aria-label="טקסט הפוסט, ניתן לעריכה"></textarea>
+        <p id="enforcement-note" class="hint" hidden></p>
+        <div class="actions">
+          <button id="copy-btn" type="button" class="btn btn-primary">העתק</button>
+          <button id="rewrite-btn" type="button" class="btn">נסח מחדש</button>
+          <span id="copy-ok" class="ok" role="status"></span>
+        </div>
+      </div>
+    </article>
+
+    <!-- שלב פרומפט התמונה -->
+    <article id="step-prompt" class="step" hidden aria-labelledby="step-prompt-title">
+      <header class="step-head">
+        <span class="step-num" aria-hidden="true">2</span>
+        <h3 id="step-prompt-title">פרומפט לתמונה</h3>
+        <span id="prompt-meta" class="step-meta"></span>
+      </header>
+
+      <div class="controls">
+        <div class="field">
+          <label for="engine">מנוע תמונות</label>
+          <select id="engine"></select>
+          <p class="hint" id="engine-hint"></p>
+        </div>
+
+        <fieldset class="field">
+          <legend>תמונה או קרוסלה</legend>
+          <div class="segmented" role="radiogroup" aria-label="תמונה או קרוסלה">
+            <label><input type="radio" name="imgmode" value="single" checked><span>תמונה בודדת</span></label>
+            <label><input type="radio" name="imgmode" value="carousel"><span>קרוסלה</span></label>
+          </div>
+          <div id="slides-wrap" class="inline-field" hidden>
+            <label for="slides">מספר סליידים</label>
+            <select id="slides">
+              <option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option>
+            </select>
+            <label class="check"><input id="consistency" type="checkbox" checked> שמור עקביות בין הסליידים (סלייד 1 משמש רפרנס לשאר)</label>
+          </div>
+        </fieldset>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="ratio">פורמט</label>
+            <select id="ratio"></select>
+          </div>
+          <div class="field">
+            <label for="quality">איכות</label>
+            <select id="quality">
+              <option value="medium">רגילה (medium / 1K)</option>
+              <option value="high" selected>גבוהה (high / 2K)</option>
+              <option value="xhigh">מקסימלית (xhigh / 4K)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="profile">פרופיל קהל (visual-maker)</label>
+          <select id="profile"></select>
+        </div>
+
+        <fieldset class="field">
+          <legend>טקסט בתוך התמונה</legend>
+          <label class="check"><input id="headline-on" type="checkbox"> כותרת בתוך התמונה (עד 6 מילים לסלייד; GPT Image מומלץ)</label>
+          <div id="headline-options" class="inline-field" hidden>
+            <label class="check"><input id="clean-too" type="checkbox" checked> גם גרסה נקייה בלי טקסט, להוספת כותרת ידנית ב-Canva (מכפיל את עלות התמונה)</label>
+          </div>
+          <p class="hint">עברית בתוך תמונה היא נקודת תורפה של מודלי תמונה. בדוק את הכותרת אות-אות אחרי היצירה.</p>
+        </fieldset>
+
+        <div class="field">
+          <label for="img-instructions">הוראות נוספות לתמונה (אופציונלי)</label>
+          <input id="img-instructions" type="text" placeholder="למשל: עם טקסט 'שלב 1' בפינה, בלי דמויות, סגנון איור שטוח">
+        </div>
+
+        <div class="field">
+          <label for="refs">תמונות רפרנס (אופציונלי)</label>
+          <input id="refs" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+          <p class="hint">משמשות לסגנון, אווירה וקומפוזיציה. פנים של אנשים אמיתיים לא מועתקות.</p>
+          <ul id="ref-list" class="refs" aria-live="polite"></ul>
+        </div>
+
+        <div class="actions">
+          <button id="prompt-btn" type="button" class="btn btn-primary">צור פרומפט לתמונה</button>
+        </div>
+      </div>
+
+      <div id="prompt-status" class="status" hidden></div>
+      <div id="prompt-summary" class="summary" hidden></div>
+      <div id="prompt-items"></div>
+      <div id="prompt-actions" class="actions" hidden>
+        <button id="generate-btn" type="button" class="btn btn-primary btn-big">צור תמונה</button>
+        <button id="reprompt-btn" type="button" class="btn">בנה פרומפט אחר</button>
+      </div>
+    </article>
+
+    <!-- שלב התמונה -->
+    <article id="step-image" class="step" hidden aria-labelledby="step-image-title">
+      <header class="step-head">
+        <span class="step-num" aria-hidden="true">3</span>
+        <h3 id="step-image-title">התמונה</h3>
+        <span id="image-meta" class="step-meta"></span>
+      </header>
+      <div id="image-status" class="status" hidden></div>
+      <div id="image-grid" class="image-grid"></div>
+      <div id="image-actions" class="actions" hidden>
+        <button id="regen-all-btn" type="button" class="btn">צור מחדש</button>
+      </div>
+    </article>
+
+    <!-- שלב הוידאו לטיקטוק -->
+    <article id="step-video" class="step" hidden aria-labelledby="step-video-title">
+      <header class="step-head">
+        <span class="step-num" aria-hidden="true">4</span>
+        <h3 id="step-video-title">סרטון לטיקטוק</h3>
+        <span id="video-meta" class="step-meta"></span>
+      </header>
+      <div class="controls">
+        <p class="hint">השרשרת: כיתובי המסך ובריף השוטים מהפוסט הופכים לתוכנית, לכל שוט נוצר סטיל 9:16, הסטיל מונפש ב-Higgsfield, והכול מורכב לסרטון אחד 1080×1920 עם הכיתובים בעברית. בלי מפתח Higgsfield, כל שוט מקבל תנועת זום איטית על הסטיל.</p>
+        <div class="grid-2">
+          <div class="field">
+            <label for="video-model">מנוע וידאו (Higgsfield API)</label>
+            <select id="video-model"></select>
+            <p class="hint" id="video-model-hint"></p>
+          </div>
+          <div class="field">
+            <label for="shot-seconds">שניות לשוט</label>
+            <select id="shot-seconds">
+              <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="caption-font">גופן הכיתובים</label>
+            <select id="caption-font"></select>
+          </div>
+          <div class="field">
+            <label class="check" style="margin-top:34px"><input id="video-captions" type="checkbox" checked> כיתובי מסך בעברית על הסרטון</label>
+          </div>
+        </div>
+        <p id="video-key-note" class="hint" hidden></p>
+        <div class="actions">
+          <button id="plan-btn" type="button" class="btn btn-primary">תכנן שוטים</button>
+          <button id="stills-btn" type="button" class="btn" disabled>צור סטילים</button>
+          <button id="clips-btn" type="button" class="btn" disabled>הנפש ב-Higgsfield</button>
+          <button id="assemble-btn" type="button" class="btn" disabled>הרכב סרטון</button>
+          <button id="video-all-btn" type="button" class="btn">הרץ הכול</button>
+        </div>
+      </div>
+      <div id="video-status" class="status" hidden></div>
+      <div id="shot-list" class="shot-list"></div>
+      <div id="video-final" class="video-final" hidden>
+        <h4>הסרטון המורכב</h4>
+        <video id="final-video" controls playsinline preload="metadata"></video>
+        <div id="final-meta" class="card-meta"></div>
+        <div class="actions"><a id="final-download" class="btn btn-link btn-primary" download>הורד סרטון</a></div>
+      </div>
+    </article>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>המנוע רץ מקומית ב-<code id="foot-url">127.0.0.1:8765</code>. המפתחות נשארים בקובץ .env ולא מגיעים לדפדפן.</span>
+</footer>
+
+<script src="static/app.js"></script>
+</body>
+</html>
